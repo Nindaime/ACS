@@ -13,6 +13,8 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+import org.apache.batik.parser.PathParser;
+
 /**
  *
  * @author PETER-PC
@@ -34,7 +36,7 @@ public class ACS extends Application {
         StackPane root = new StackPane();
         root.getChildren().add(btn);
         
-        Scene scene = new Scene(root, 300, 250);
+        Scene scene = new Scene(root, 800, 800);
         
         primaryStage.setTitle("Hello World!");
         primaryStage.setScene(scene);
