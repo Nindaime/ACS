@@ -28,9 +28,9 @@ public class JavaFXPathElementHandler implements PathHandler {
     private float lastX = 0;
     private float lastY = 0;
 
-    public JavaFXPathElementHandler(String pathStyling) {
-        path.getStyleClass().add(pathStyling);
-    }
+//    public JavaFXPathElementHandler(String pathStyling) {
+//        path.getStyleClass().add(pathStyling);
+//    }
 
     @Override
     public void arcAbs(float rx, float ry, float xAxisRotation, boolean largeArcFlag, boolean sweepFlag, float x, float y) throws ParseException {

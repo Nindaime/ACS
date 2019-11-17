@@ -1,96 +1,81 @@
-/*
+ /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
 package acs;
 
+
+import java.io.IOException;
 import javafx.application.Application;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.layout.StackPane;
-import javafx.stage.Stage;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import javafx.animation.PathTransition;
-import javafx.animation.Timeline;
-import javafx.application.Application;
-import javafx.scene.Scene;
+import javafx.scene.control.Slider;
+import javafx.scene.control.SplitPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Path;
 import javafx.stage.Stage;
-import javafx.util.Duration;
-import org.apache.batik.dom.svg.SAXSVGDocumentFactory;
-
-import org.apache.batik.parser.PathParser;
-import org.apache.batik.util.XMLResourceDescriptor;
-import org.w3c.dom.Element;
-import org.w3c.dom.svg.SVGDocument;
 /**
  *
  * @author PETER-PC
  */
 public class ACS extends Application {
-    
+    SplitPane cPanel;
     @Override
     public void start(Stage primaryStage) {
-        PathParser parser = new PathParser();
-//        SAXParser p = new SAXParser();
-            JavaFXPathElementHandler handler = new JavaFXPathElementHandler("track");
-            parser.setPathHandler(handler);
-
-            String pathData = "";
-            try {
-                String xmlParser = XMLResourceDescriptor.getXMLParserClassName();
-                SAXSVGDocumentFactory f = new SAXSVGDocumentFactory(xmlParser);
-
-                String uri = "File:\\Users\\PETER-PC\\Documents\\NetBeansProjects\\PCore_SVG_Test\\src\\pcore_svg_test\\assets\\FloorPlanDrivePath.svg";
-                FileInputStream fI = new FileInputStream("C:\\Users\\PETER-PC\\Documents\\NetBeansProjects\\PCore_SVG_Test\\src\\pcore_svg_test\\assets\\FloorPlanDrivePath.svg");
-                System.out.println(fI.available());
-                SVGDocument doc = f.createSVGDocument(uri);
-                Element element = doc.getElementById("entP_toA1");
-                pathData = element.getAttributeNode("d").getValue();
-                System.out.println(pathData);
-            } catch (IOException e) {
-                System.err.println(e.getMessage());
-            }
 
             Pane root = new Pane();
+            cPanel = new SplitPane();
+            try {
+                FXMLLoader myLoader = new FXMLLoader(getClass().getResource("ControlPanel.fxml"));
 
-            parser.parse(pathData);
-            Path path = handler.getPath();
-            root.getChildren().add(path);
-            path.setTranslateX(710);
-            path.setTranslateY(-175);
-            path.setStroke(Color.TRANSPARENT);
+                cPanel = (SplitPane) myLoader.load();
+                cPanel.setLayoutX(91);
+                cPanel.setLayoutY(315);
+                root.getChildren().add(cPanel);
+                
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }     
 
-            ImageView car = new ImageView(new Image(getClass().getResourceAsStream("assets/Vehicle_SedanGreen.png")));
-//        car.setRotate(180);
-            root.getChildren().add(car);
             ImageView map = new ImageView(new Image(getClass().getResourceAsStream("assets/FloorPlan.png")));
             map.setFitHeight(550);
             map.setPreserveRatio(true);
+            
             root.getChildren().add(0, map);
+            
+            AnimationSequence animation = new AnimationSequence();
+//            animation.setAnimationSequence("extP_reverseFromB1","extP_toExtFromB1Reverse");
+            //D7 blacklist
+            
+//            animation.setNumOfCheckIn(3);
+            animation.setControlSystemCoordinates();
+            root.getChildren().addAll(animation.getControlSystem());
 
-            PathTransition pT = new PathTransition(Duration.seconds(5), path, car);
-            pT.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
-            pT.setCycleCount(Timeline.INDEFINITE);
-            pT.setRate(-1);
-            pT.play();
+            root.getChildren().addAll(AnimationSequence.getCheckInVehicles());        
 
             primaryStage.setTitle("JavaFX PathTransition Test with SVG");
-            primaryStage.setScene(new Scene(root, 740, 550));
-//        primaryStage.getScene().getStylesheets().add("C:\\Users\\PETER-PC\\Documents\\NetBeansProjects\\PCore_SVG_Test\\src\\pcore_svg_test\\assets\\style.css");
+            Scene scene = new Scene(root, 740, 550);
+            primaryStage.setScene(scene);
             primaryStage.show();
 
-    }
+        
+            ((Button)cPanel.lookup("#btnStart")).setOnAction(e->{
+//                animation.playAnimationSequence(); 
+                if(root.getChildren().containsAll(AnimationSequence.getParkedVehicles()))
+                    root.getChildren().removeAll(AnimationSequence.getParkedVehicles());
+                animation.generateParkedCars(getNOC_Value());
+                animation.layoutParkedCars(root);
+            });
 
+    }
+    
+    public final int getNOC_Value(){
+        return ((int)((Slider)cPanel.lookup("#sldParkedCars")).getValue());
+    }
+    
     /**
      * @param args the command line arguments
      */
