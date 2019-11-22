@@ -9,20 +9,25 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
 import javafx.animation.PathTransition;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
-import javafx.scene.shape.CubicCurveTo;
-import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
-import javafx.scene.shape.PathElement;
 import javafx.scene.transform.Transform;
 import javafx.util.Duration;
 import org.apache.batik.dom.svg.SAXSVGDocumentFactory;
@@ -37,20 +42,21 @@ import org.w3c.dom.svg.SVGDocument;
  */
 public class AnimationSequence {
     private ArrayList<Animation> sT;
+    private Map<String, Object> cPanelNamespace;
 //    private SequentialTransition sT;
     private SVGDocument svgDrivePath;
-    private static int[][] animationRate = {
-        {-1,1,-1,1,1}, 
-        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, 
-        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}, 
-        {1,1,1,1,1,1,1,1,1,1,1}, 
-        {-1,-1,-1,-1,-1},
+    private static double[][] animationRate = {
+        {-1,-.95,-.85,.75,.65}, 
+        {-1,-1,-.95,-.95,-.85,-.85,-.75,-.75,-.65,-.65,-.5}, 
+        {-1,-1,-.95,-.95,-.85,-.85,-.75,-.75,-.65,-.65,-.5}, 
+        {.85,.85,.85,.75,.75,.75,.65,.65,.65,.5,.5}, 
+        {-.5,-.5,-.5,-.5,-.5},
         {-1,-1,-1,1,1},
-        {-1, 1, -1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1},
+        {.5, .5, -.5, .5, .5},
+        {.5, .5, .65, .65, .65, .75, .75, .75, .85, .85, .85},
+        {.5, .65, .65, .75, .75, .85, .85, .95, .95, 1, 1},
+        {-.5, -.65, -.65, -.75, -.75, -.85, -.85, -.95, -.95, -1, -1},
+        {1, .95, .85, .75, .65},
         {1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -65,6 +71,9 @@ public class AnimationSequence {
         PathParser parser = new PathParser();
         VACS_Components = new ArrayList<>();
         sT = new ArrayList<>();
+        FXMLLoader myLoader = new FXMLLoader(getClass().getResource("ControlPanel.fxml"));
+        cPanelNamespace = myLoader.getNamespace();
+            
         JavaFXPathElementHandler handler = new JavaFXPathElementHandler();
         parser.setPathHandler(handler);
         try {
@@ -100,7 +109,7 @@ public class AnimationSequence {
         return path;
     }
     
-    public int getAnimRateFromPathID(String pathID){
+    public double getAnimRateFromPathID(String pathID){
         int rowIndex = 0, columnIndex = 0; String output = ""; char c = '\u0000';
         if(pathID.matches("entP_to[\\S]{2,3}")){
                 output = pathID.substring(7);
@@ -136,10 +145,10 @@ public class AnimationSequence {
                     case "entP_toEntExt":
                         columnIndex = 2;
                         break;
-                    case "entP_toExtExt1":
+                    case "entP_toExtExt":
                         columnIndex = 3;
                         break;
-                    case "extP_toExtExt2":
+                    case "extP_toExtExt":
                         columnIndex = 4;
                         break;
                 }
@@ -172,11 +181,12 @@ public class AnimationSequence {
 
                 return animationRate[rowIndex][--columnIndex];
         }else if(pathID.matches("extP_reverseFrom[\\S]{2,}")){
-                output = pathID.substring(15);
+                output = pathID.substring(16);
                 c = output.charAt(0);
                 rowIndex = 11;
-//                pathID.s
+                System.out.println("extracted character @ index 16 is "+c);
                 columnIndex = Integer.parseInt(pathID.substring(17));
+                System.out.println("extracted character between index 15 and 17 is "+(pathID.length() == 18 ? pathID.substring(18) : pathID.substring(18)));
                 switch (c) {
                     case 'B':
                         rowIndex = 12;
@@ -191,18 +201,22 @@ public class AnimationSequence {
                         rowIndex = 15;
                         break;
                 }
-                return animationRate[rowIndex][--columnIndex];
+                System.out.println("Animation Rate for Row: "+rowIndex+" & Column: "+(columnIndex - 1));
+                return animationRate[rowIndex][columnIndex - 1];
         }else
             return 1;
                
     }
 
     public final void setAnimationSequence(Node car, String... pathID) {
-
+        ArrayList<Animation> tempAnimationList = new ArrayList<>();
         for(int i = 0; i < pathID.length; i++){
+            System.out.println("Get animation path for svg path id: "+pathID[i]);
             Path p = getPath(pathID[i]);
-            if(pathID[i].matches("extP_toExtFrom[\\S]{9,}"))
-                p.setTranslateX(15);
+            if(pathID[i].matches("extP_toExtFrom[\\S]{9,}") || pathID[i].matches("extP_[\\w]{1,}C")){
+                p.setTranslateX(-500);
+                p.setTranslateY(-500);
+            }
             p.setTranslateY(8);
             PathTransition pT = new PathTransition(Duration.seconds(5), p, car);
             pT.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
@@ -210,17 +224,43 @@ public class AnimationSequence {
             pT.setRate(getAnimRateFromPathID(pathID[i]));
             System.out.println("Animation ["+i+"]: "+pT.getRate());
             
-//            if(pathID[i].matches("extP_reverseFrom[\\S]{2,}")){
-//                car.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
-//            }
+            if(pathID[i].matches("extP_reverseFrom[\\S]{2,}")){
+                ((Car)car).getCarIcon().setNodeOrientation(pT.getRate() > 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+            }
 //            else
 //            car.setRotate(pT.getRate() == 1 ? 0 : 180);
-            ((Car)car).getCarIcon().setNodeOrientation(pT.getRate() != 1 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+            ((Car)car).getCarIcon().setNodeOrientation(pT.getRate() < 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
                 
-            sT.add(pT);
-
+            tempAnimationList.add(pT);
+            
+            
+            System.out.println("CPanel: "+cPanelNamespace.get("cBoxTimer"));
+            ChoiceBox c = ((ChoiceBox)cPanelNamespace.get("cBoxTimer"));
+            
+//            System.out.println("ChoiceBox value: "+c.getValue());
+//            System.out.println("ChoiceBox value: "+c);
+//            int barrierDuration = Integer.parseInt((c.getValue().toString()));
+            int barrierDuration = 3;
+            
+            int counter = 0;
+            counter = tempAnimationList.stream().filter((a) -> (a instanceof Timeline)).map((_item) -> 1).reduce(counter, Integer::sum);
+            if (pathID[i].matches("entP_toFirstBarrier")) {
+                tempAnimationList.add(getBarrierAnimation(VACS_Components.get(0), Duration.seconds(barrierDuration), -45));
+//                ((Car) car).getCarIcon().setNodeOrientation(pT.getRate() == 1 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+            }else if(pathID[i].matches("entP_toSecondBarrier")){
+                tempAnimationList.add(getBarrierAnimation(VACS_Components.get(0), Duration.seconds(barrierDuration), 0));
+                tempAnimationList.add(getBarrierAnimation(VACS_Components.get(1), Duration.seconds(barrierDuration), -45));
+            }else if(pathID[i].matches("entP_to[\\S]{2,3}") && (counter == 3)){
+                    tempAnimationList.add(getBarrierAnimation(VACS_Components.get(1), Duration.seconds(barrierDuration), 0));
+            }else if(pathID[i].matches("extP_toExtFrom[\\S]{9,}") && (counter == 4)){
+                tempAnimationList.add(sT.size() - 2, getBarrierAnimation(VACS_Components.get(3), Duration.seconds(barrierDuration), -45));
+                tempAnimationList.add(getBarrierAnimation(VACS_Components.get(3), Duration.seconds(barrierDuration), 0));
+            }
         }
         
+        for(Animation a: tempAnimationList)
+            sT.add(a);
+//        sT.addAll(tempAnimationList, new PauseTransition(Duration.seconds(5)));
         sT.add(new PauseTransition(Duration.seconds(5)));
         System.out.println("Animation contains: "+sT.size());
         
@@ -235,17 +275,40 @@ public class AnimationSequence {
         
 //        ArrayBlockingQueue<Animation> playList = new ArrayBlockingQueue(sT.size(), true, sT );
         for(Animation a: sT){
+            System.out.println("Animation "+a);
             int currentIndex = sT.indexOf(a);
             if(currentIndex < (sT.size()-1)){
                 Animation nextAnimation = sT.get(++currentIndex);
-                a.setOnFinished(e ->nextAnimation.play());
+                a.setOnFinished(e ->{
+//                    Timer timer = new Timer();
+//                    TimerTask task = new TimerTask(){
+//                        @Override
+//                        public void run(){
+//                            this.cancel();
+//                        }
+//                    };
+//                    timer.scheduleAtFixedRate(task, 1000, 500);
+                            nextAnimation.play();
+                });
             }else
-                a.setOnFinished(e -> printOccupancyArray());
+                a.setOnFinished(e -> {
+                    printOccupancyArray();
+                    });
 
         }
         
         sT.get(0).play();
+        sT.get(0).stop();
+        sT.get(0).setDelay(Duration.seconds(5));
+        sT.get(0).play();
+        System.out.println("Animation Started");
         
+    }
+    
+    public Timeline getBarrierAnimation(Node barrier, Duration d, int angle){
+       Timeline t = new Timeline();
+       t.getKeyFrames().add(new KeyFrame(d, new KeyValue(barrier.rotateProperty(), angle, Interpolator.EASE_OUT)));
+       return t;
     }
 
     public ArrayList<Node> getControlSystem(){
@@ -266,11 +329,11 @@ public class AnimationSequence {
             switch(index){
                 case 0:
                     n.setLayoutX(645);
-                    n.setLayoutY(436);
+                    n.setLayoutY(404);
                     break;
                 case 1:
                     n.setLayoutX(645);
-                    n.setLayoutY(318);
+                    n.setLayoutY(300);
                     break;
                 case 2:
                     n.setLayoutX(695);
@@ -292,7 +355,8 @@ public class AnimationSequence {
     
     private static String[] vehicleFileNames = {"Vehicle Coupe Grey", "Vehicle Limosin White", "Vehicle Sedan Green", "Vehicle Truck RedWhite", "Vehicle Van Blue", "Vehicle Van LightBlue"};
     
-    private static int[][] occupany = {{0,0,0,0,0,},
+    private static int[][] occupany = {
+        {0,0,0,0,0},
         {0,0,0,0,0,0,0,0,0,0,0},
         {0,0,0,0,0,0,0,0,0,0,0},
         {0,0,0,0,0,0,0,0,0,0,0},
@@ -307,6 +371,14 @@ public class AnimationSequence {
         }
     }
     
+    public void resetOccupancy(){
+        for (int i = 0; i < occupany.length; i++) {
+            for (int j = 0; j < occupany[i].length; j++) {
+               occupany[i][j] = 0;
+            }
+        }
+    }
+    
     public void generateParkedCars(int num){
         if(!parkedVehicles.isEmpty())
             parkedVehicles.clear();
@@ -314,34 +386,71 @@ public class AnimationSequence {
             String allottedSpace = generatePS_Num();
             while(isOccupied(allottedSpace)){
                 allottedSpace = generatePS_Num();
-                updateOccupancy(allottedSpace, Car.occupanyStatus.PARKED);
+                System.out.println("Generated Space: "+allottedSpace);
             }
+            System.out.println("Valid Generated Space: "+allottedSpace);
             
             int vehicleID = (int)(Math.random() * 6);
             Car car = new Car(vehicleFileNames[vehicleID]);
             car.setAllocateSpace(allottedSpace);
+            updateOccupancy(allottedSpace, Car.occupanyStatus.PARKED);
+            System.out.println("Occupancy Updated");
             parkedVehicles.add(car);
         }
+        
+        printOccupancyArray();
+    }
+    
+    public synchronized  void addCarToLayout(Pane pane, Car c, Point2D coord){
+        pane.getChildren().add(c);
+        c.setLayoutX(coord.getX());
+        c.setLayoutY(coord.getY());
     }
     
     public void layoutParkedCars(Pane pane){
         for(Car c: parkedVehicles){
-            String allottedSpace = c.getAllocateSpace();
-            allottedSpace = "entP_to"+allottedSpace;
-            Path path = getPath(allottedSpace);
-            Point2D coord = new Point2D(0,0);
-            for(PathElement e: path.getElements()){
-//                if(e instanceof CubicCurveTo && path.getElements().indexOf(e) == (path.getElements().size() - 1)){
-                if(e instanceof MoveTo){
-                    pane.getChildren().add(c);
-                    c.setLayoutX(((MoveTo) e).getX());
-                    c.setLayoutY(((MoveTo) e).getY());
+            String[] occupancyIndex = c.getAllocateSpace().split("[\\D]");
                     
+                    int rowIndex = 0, columnIndex = 0;
+                    switch (c.getAllocateSpace().charAt(0)) {
+                        case 'A':
+                            c.setRotate(180);
+                        case 'B':
+                            rowIndex = 1;
+                            c.setRotate(-90);
+                            break;
+                        case 'C':
+                            rowIndex = 2;
+                            c.setRotate(90);
+                            break;
+                        case 'D':
+                            c.setRotate(90);
+                            rowIndex = 3;
+                            break;
+                        case 'E':
+                            rowIndex = 4;
+                            break;
+                    }
+                    columnIndex = Integer.parseInt(occupancyIndex[1]);
+
+                    c.setLayoutX(parkingSpace[rowIndex][(columnIndex-1)].getX());
+                    c.setLayoutY(parkingSpace[rowIndex][(columnIndex-1)].getY());
+           
+                    addCarToLayout(pane, c, parkingSpace[rowIndex][(columnIndex-1)]);
+//                    pane.getChildren().add(c);
                     System.out.println(c.getVehicleModel()+" layoutX: "+c.getLayoutX()+"LayoutY: "+c.getLayoutY());
-                }
-            }
+//                }
+//            }
         }
     }
+    
+    private static Point2D[][] parkingSpace = {
+        {new Point2D(700,249), new Point2D(700,209), new Point2D(700,167), new Point2D(700,128), new Point2D(700,78)},
+        {new Point2D(578,281), new Point2D(536,281), new Point2D(491,281),new Point2D(456,281),new Point2D(413,281),new Point2D(368,281),new Point2D(324,281),new Point2D(279,281), new Point2D(241,281), new Point2D(199,281), new Point2D(157,281)},
+        {new Point2D(583,150), new Point2D(542,150), new Point2D(500,150),new Point2D(456,151),new Point2D(413,150),new Point2D(368,150),new Point2D(324,150),new Point2D(279,150), new Point2D(241,150), new Point2D(199,150), new Point2D(157,150)},
+        {new Point2D(550,29), new Point2D(509,29), new Point2D(467,29),new Point2D(423,29),new Point2D(380,29),new Point2D(348,29),new Point2D(291,29),new Point2D(246,29), new Point2D(208,29), new Point2D(166,29), new Point2D(124,29)},
+        {new Point2D(4,235), new Point2D(4,195), new Point2D(4,155), new Point2D(4,115), new Point2D(4,68)}
+    };
     
     private final static ArrayList<Car> parkedVehicles = new ArrayList<>();
 
@@ -350,6 +459,11 @@ public class AnimationSequence {
     }
     
     public void setNumOfCheckIn(int numOfVehicles){
+        if (!checkInVehicles.isEmpty()){
+            checkInVehicles.clear();
+            sT.clear();
+            resetOccupancy();
+        } 
         int counter = 0;
         String toFirstBarrier = "entP_toFirstBarrier", toSecondBarrier = "entP_toSecondBarrier";
         while(counter < numOfVehicles){
@@ -396,7 +510,7 @@ public class AnimationSequence {
         return builder.toString();
     }
     
-    private void updateOccupancy(String allottedSpace, Car.occupanyStatus status){
+    private synchronized void updateOccupancy(String allottedSpace, Car.occupanyStatus status){
         String[] occupancyIndex = allottedSpace.split("[\\D]");
         int rowIndex = 0, columnIndex = 0;
         switch(allottedSpace.charAt(0)){
@@ -446,5 +560,83 @@ public class AnimationSequence {
     }
     
     
-    public static void setNumOfCheckOut(){}
+    public void setNumOfCheckOut(int numOfVehicles){
+        if(!sT.isEmpty())
+            sT.clear();
+        int counter = 0;
+        String extP_toExtExt = "extP_toExtExt";
+        while (counter < numOfVehicles) {
+            String allottedSpace = getOccupiedParkingLot();
+            System.out.println("Generated parking space: "+allottedSpace);
+//            
+//            //if the allocated space is occupied, skip this loop and allocate another space
+//            if (isOccupied(allottedSpace)) {
+//                continue;
+//            }
+            String toExitPath = "extP_toExtFrom"+allottedSpace+"Reverse";
+            String reversePath = "extP_reverseFrom"+allottedSpace;
+            System.out.println("Vehicle is exiting from Allotted Parking Space [" + counter + "]: " + allottedSpace);
+            Car checkoutCar = getCarInAllotedSpace(allottedSpace);
+            if(!allottedSpace.matches("extP_[\\w]{1,}C"))
+                setAnimationSequence(checkoutCar, reversePath, toExitPath, extP_toExtExt);
+            else
+                setAnimationSequence(checkoutCar, toExitPath, extP_toExtExt);
+
+            //set allocated space to occupied
+            updateOccupancy(allottedSpace, Car.occupanyStatus.UNPARKED);
+            counter++;
+        }
+    }
+    
+    public Car getCarInAllotedSpace(String allottedSpace){
+        Car car = new Car("Vehicle Sedan Green");
+        System.out.println("Default car is Vehicle Sedan Green");
+        for(Car c: parkedVehicles){
+            System.out.println("Parked Car "+c.getVehicleModel()+" @ "+c.getAllocateSpace());
+            if(c.getAllocateSpace().equals(allottedSpace)){
+                car = c;
+                System.out.println("Retreived car is "+c.getVehicleModel());
+                break;
+            }
+        }
+        return car;
+    }
+    
+    public String getOccupiedParkingLot(){
+        String output = ""; boolean found = false;
+        for (int i = 0; i < occupany.length; i++) {
+            if(found){
+               System.out.println("goal found, breaking loop");
+               break; 
+            }
+            for (int j = 0; j < occupany[i].length; j++) {
+                if(occupany[j][i] == 1){
+                    System.out.println("Vehicle found @ Parking Space ["+j+"]["+i+"]");
+                    found = true;
+                    switch(j){
+                        case 0:
+                            output += "A";
+                            break;
+                        case 1:
+                            output += "B";
+                            break;
+                        case 2:
+                            output += "C";
+                            break;
+                        case 3:
+                            output += "D";
+                            break;
+                        case 4:
+                            output += "E";
+                            break;
+                    }
+                    int parkinglotNumber = ++i;
+                    output += parkinglotNumber;
+                    break;
+                }
+            }
+        }
+        
+        return output;
+    }
 }

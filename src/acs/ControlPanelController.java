@@ -8,15 +8,14 @@ package acs;
 
 import java.net.URL;
 import java.util.ResourceBundle;
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.MouseEvent;
 
 /**
  * FXML Controller class
@@ -40,7 +39,12 @@ public class ControlPanelController implements Initializable {
             }
         });
 
+        cBoxTimer.setItems(FXCollections.observableArrayList("1","2","3","4","5"));
+//        cBoxTimer.setValue(5);
     }    
+    
+    @FXML
+    private ChoiceBox cBoxTimer;
     
 //    public static class Result {
 //
