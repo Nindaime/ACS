@@ -39,8 +39,8 @@ public class ControlPanelController implements Initializable {
             }
         });
 
-        cBoxTimer.setItems(FXCollections.observableArrayList("1","2","3","4","5"));
-//        cBoxTimer.setValue(5);
+        cBoxTimer.setItems(FXCollections.observableArrayList(1,2,3,4,5));
+        cBoxTimer.setValue(3);
     }    
     
     @FXML

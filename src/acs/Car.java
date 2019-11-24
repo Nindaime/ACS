@@ -5,9 +5,15 @@
  */
 package acs;
 
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 
 /**
  *
@@ -17,16 +23,17 @@ public class Car extends Pane{
     public enum vehicleColor {BLACK, GREEN, RED, SKYBLUE, LIGHTLAVENDAR, LAVENDAR, LIGHTGREY, WHITE}
     private vehicleColor primaryColor;
     private vehicleColor secondaryColor;
-    private String RFID;
+    private Label rfidNumber;
     private vehicleAccess accessLevel;
     public enum vehicleAccess {Residence, Visitor};
-    private String plateNumber;
+    private Label plateNumber;
     private String allocateSpace;
     public enum occupanyStatus {UNPARKED, PARKED};
     private occupanyStatus parkedStatus;
     
     private ImageView carIcon;
     private String vehicleModel;
+    private ImageView rfidTag;
 
     public String getAllocateSpace() {
         return allocateSpace;
@@ -43,7 +50,6 @@ public class Car extends Pane{
     public void setParkedStatus(occupanyStatus parkedStatus) {
         this.parkedStatus = parkedStatus;
     }
-    private ImageView rfidTag;
 
     public vehicleColor getPrimaryColor() {
         return primaryColor;
@@ -61,12 +67,12 @@ public class Car extends Pane{
         this.secondaryColor = secondaryColor;
     }
 
-    public String getRFID() {
-        return RFID;
+    public Label getrfidNumber() {
+        return rfidNumber;
     }
 
-    public void setRFID(String RFID) {
-        this.RFID = RFID;
+    public void setrfidNumber(String rfidNumber) {
+        this.rfidNumber.setText(rfidNumber);
     }
 
     public vehicleAccess getAccessLevel() {
@@ -77,12 +83,12 @@ public class Car extends Pane{
         this.accessLevel = accessLevel;
     }
 
-    public String getPlateNumber() {
+    public Label getPlateNumber() {
         return plateNumber;
     }
 
     public void setPlateNumber(String plateNumber) {
-        this.plateNumber = plateNumber;
+        this.plateNumber.setText(plateNumber);
     }
 
     public ImageView getCarIcon() {
@@ -101,60 +107,124 @@ public class Car extends Pane{
         this.rfidTag = rfidTag;
     }
     
+    private Rectangle cursor;
+    
     public Car(String imgFileName){
         vehicleModel = imgFileName;
         carIcon = new ImageView(new Image(getClass().getResourceAsStream("assets/"+imgFileName+".png")));
         rfidTag = new ImageView(new Image(getClass().getResourceAsStream("assets/RFID Sensor 2.png")));
-        rfidTag.setFitWidth(10);
-        rfidTag.setPreserveRatio(true);
-        rfidTag.setLayoutX(20);
-        rfidTag.setLayoutY(8);
         generateAccessLevel();
-        parkedStatus = occupanyStatus.UNPARKED;
         allocateSpace = "";
-        getChildren().addAll(carIcon, rfidTag);
+        parkedStatus = occupanyStatus.UNPARKED;
+       
+        
+        translateXProperty().addListener(new ChangeListener(){
+            @Override
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                System.out.print(this+" is @ X: "+newValue);
+            }
+        });
+        
+        translateYProperty().addListener(new ChangeListener() {
+            @Override
+            public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+                System.out.println(" & Y: "+newValue);
+//                System.out.println("Node Orientation of Car is "+getNodeOrientation()+" & Node Orientation of Car Icon is "+carIcon.getNodeOrientation());
+            }
+        });
         
         switch(imgFileName){
             case "Vehicle Coupe Grey":
                 primaryColor = vehicleColor.LIGHTLAVENDAR;
                 secondaryColor = vehicleColor.BLACK;
-                RFID = generateCode(5);
-                plateNumber = generateCode(7);
+                rfidNumber = new Label(generateCode(4));
+                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Limosin White":
                 primaryColor = vehicleColor.LIGHTGREY;
                 secondaryColor = vehicleColor.BLACK;
-                RFID = generateCode(5);
-                plateNumber = generateCode(7);
+                rfidNumber = new Label(generateCode(4));
+                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Sedan Green":
                 primaryColor = vehicleColor.GREEN;
                 secondaryColor = vehicleColor.BLACK;
-                RFID = generateCode(5);
-                plateNumber = generateCode(7);
+                rfidNumber = new Label(generateCode(4));
+                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Truck RedWhite":
                 primaryColor = vehicleColor.RED;
                 secondaryColor = vehicleColor.WHITE;
-                RFID = generateCode(5);
-                plateNumber = generateCode(7);
+                rfidNumber = new Label(generateCode(4));
+                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Van Blue":
                 primaryColor = vehicleColor.SKYBLUE;
                 secondaryColor = vehicleColor.BLACK;
-                RFID = generateCode(5);
-                plateNumber = generateCode(7);
+                rfidNumber = new Label(generateCode(4));
+                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Van LightBlue":
                 primaryColor = vehicleColor.LAVENDAR;
                 secondaryColor = vehicleColor.BLACK;
-                RFID = generateCode(5);
-                plateNumber = generateCode(7);
+                rfidNumber = new Label(generateCode(5));
+                plateNumber = new Label(generateCode(6));
                 break;
         }
-         
         
+        rfidTag.setFitWidth(10);
+        rfidTag.setPreserveRatio(true);
+        plateNumber.setStyle("-fx-background-color: rgba(50,50,50,0.6); -fx-border-color: darkgrey; -fx-text-fill: white; -fx-margin: 0; -fx-padding: 0;");
+        getChildren().addAll(carIcon,rfidTag,plateNumber);
+        rfidTag.setLayoutX(carIcon.getBoundsInLocal().getWidth() / 2f);
+        rfidTag.setLayoutY(10);
+//        
+        plateNumber.setLayoutY(4);
+        plateNumber.setTranslateX(carIcon.getBoundsInLocal().getWidth() - 15);
+        plateNumber.setRotate(90);
+        setStyle("-fx-background-color: rgba(20,20,20,0.8);");
+        
+        cursor = new Rectangle(carIcon.getBoundsInLocal().getHeight() + 3, carIcon.getBoundsInLocal().getWidth() + 3);
     }
+    
+    class Tracker implements ChangeListener{
+        int refreshRate = 0;
+        @Override
+        public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+            ++refreshRate;
+            if(refreshRate % 5 == 0){
+                int deltaX = 5 - (int) (Math.random() * 10);
+                int deltaY = 5 - (int) (Math.random() * 10);
+                cursor.setTranslateX(15 + carIcon.getTranslateX() + deltaX);
+                cursor.setTranslateY(carIcon.getTranslateY() - 15 + deltaY);
+            }else{
+                cursor.setTranslateX(18 + carIcon.getTranslateX());
+                cursor.setTranslateY(carIcon.getTranslateY() - 15);
+            }
+        }
+    }
+    
+    Tracker t;
+    
+    public void startTracking(){
+        cursor.setFill(Color.rgb(255, 199, 0));
+        cursor.setRotate(90);
+        Platform.runLater(()-> {
+            getChildren().add(0, cursor);
+                });
+        t = new Tracker();
+        translateYProperty().addListener(t);
+    }
+    
+    public void endTracking(){
+        translateYProperty().removeListener(t);
+        if(getChildren().contains(cursor))
+            Platform.runLater(()-> getChildren().remove(cursor));
+    }
+//    
+//    public void Track(){
+//        
+//    }
 
     public String getVehicleModel() {
         return vehicleModel;
@@ -163,7 +233,6 @@ public class Car extends Pane{
     public void setVehicleModel(String vehicleModel) {
         this.vehicleModel = vehicleModel;
     }
-    
     
     public final String generateCode(int codeLength){
         StringBuilder builder = new StringBuilder();
@@ -183,6 +252,5 @@ public class Car extends Pane{
         int random = (int)(Math.random() * 2);
         accessLevel = (random == 0 ? vehicleAccess.Residence : vehicleAccess.Visitor);
     }
-    
     
 }

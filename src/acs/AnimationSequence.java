@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import javafx.animation.Animation;
@@ -19,7 +18,7 @@ import javafx.animation.KeyValue;
 import javafx.animation.PathTransition;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
-import javafx.fxml.FXMLLoader;
+import javafx.application.Platform;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
@@ -42,7 +41,6 @@ import org.w3c.dom.svg.SVGDocument;
  */
 public class AnimationSequence {
     private ArrayList<Animation> sT;
-    private Map<String, Object> cPanelNamespace;
 //    private SequentialTransition sT;
     private SVGDocument svgDrivePath;
     private static double[][] animationRate = {
@@ -71,8 +69,6 @@ public class AnimationSequence {
         PathParser parser = new PathParser();
         VACS_Components = new ArrayList<>();
         sT = new ArrayList<>();
-        FXMLLoader myLoader = new FXMLLoader(getClass().getResource("ControlPanel.fxml"));
-        cPanelNamespace = myLoader.getNamespace();
             
         JavaFXPathElementHandler handler = new JavaFXPathElementHandler();
         parser.setPathHandler(handler);
@@ -90,7 +86,7 @@ public class AnimationSequence {
         PathParser parser = new PathParser();
         JavaFXPathElementHandler handler = new JavaFXPathElementHandler();
         parser.setPathHandler(handler);
-        String pathData = "", matrixTransform = "";
+        String pathData, matrixTransform;
 
 //        SAXParser p = new SAXParser();
         Element selectedPath = svgDrivePath.getElementById(pathID);
@@ -217,30 +213,37 @@ public class AnimationSequence {
                 p.setTranslateX(-500);
                 p.setTranslateY(-500);
             }
+
             p.setTranslateY(8);
             PathTransition pT = new PathTransition(Duration.seconds(5), p, car);
             pT.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
             pT.setInterpolator(Interpolator.EASE_BOTH);
             pT.setRate(getAnimRateFromPathID(pathID[i]));
-            System.out.println("Animation ["+i+"]: "+pT.getRate());
+            System.out.println("Animation Rate ["+i+"]: "+pT.getRate());
             
             if(pathID[i].matches("extP_reverseFrom[\\S]{2,}")){
-                ((Car)car).getCarIcon().setNodeOrientation(pT.getRate() > 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+                Platform.runLater(()->{
+                    ((Car)car).getCarIcon().setNodeOrientation(pT.getRate() > 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+                    car.setNodeOrientation(pT.getRate() > 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+                });
             }
 //            else
 //            car.setRotate(pT.getRate() == 1 ? 0 : 180);
-            ((Car)car).getCarIcon().setNodeOrientation(pT.getRate() < 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+            Platform.runLater(()->{
+                System.out.println("Path "+pT+" has animation rate "+pT.getRate());
+                ((Car)car).getCarIcon().setNodeOrientation(pT.getRate() < 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+                System.out.println("Assigned Node Orientation "+((Car)car).getCarIcon().getNodeOrientation());
+            });
+//          car.setNodeOrientation(pT.getRate() <= 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
                 
             tempAnimationList.add(pT);
             
-            
-            System.out.println("CPanel: "+cPanelNamespace.get("cBoxTimer"));
-            ChoiceBox c = ((ChoiceBox)cPanelNamespace.get("cBoxTimer"));
+            ChoiceBox c = ((ChoiceBox)ACS.root.lookup("#cBoxTimer"));
             
 //            System.out.println("ChoiceBox value: "+c.getValue());
 //            System.out.println("ChoiceBox value: "+c);
-//            int barrierDuration = Integer.parseInt((c.getValue().toString()));
-            int barrierDuration = 3;
+            int barrierDuration = Integer.parseInt((c.getValue().toString()));
+//            int barrierDuration = 3;
             
             int counter = 0;
             counter = tempAnimationList.stream().filter((a) -> (a instanceof Timeline)).map((_item) -> 1).reduce(counter, Integer::sum);
@@ -257,13 +260,12 @@ public class AnimationSequence {
                 tempAnimationList.add(getBarrierAnimation(VACS_Components.get(3), Duration.seconds(barrierDuration), 0));
             }
         }
+
+        tempAnimationList.add(0, new PauseTransition(Duration.seconds(2)));
         
-        for(Animation a: tempAnimationList)
-            sT.add(a);
-//        sT.addAll(tempAnimationList, new PauseTransition(Duration.seconds(5)));
-        sT.add(new PauseTransition(Duration.seconds(5)));
+        sT.addAll(tempAnimationList);
+//        sTClone.addAll(tempAnimationList);s
         System.out.println("Animation contains: "+sT.size());
-        
     }
 
     public ArrayList<Animation> getAnimationSequence() {
@@ -273,36 +275,66 @@ public class AnimationSequence {
     
     public void playAnimationSequence(){
         
-//        ArrayBlockingQueue<Animation> playList = new ArrayBlockingQueue(sT.size(), true, sT );
         for(Animation a: sT){
             System.out.println("Animation "+a);
             int currentIndex = sT.indexOf(a);
-            if(currentIndex < (sT.size()-1)){
-                Animation nextAnimation = sT.get(++currentIndex);
-                a.setOnFinished(e ->{
-//                    Timer timer = new Timer();
-//                    TimerTask task = new TimerTask(){
-//                        @Override
-//                        public void run(){
-//                            this.cancel();
-//                        }
-//                    };
-//                    timer.scheduleAtFixedRate(task, 1000, 500);
-                            nextAnimation.play();
-                });
-            }else
-                a.setOnFinished(e -> {
-                    printOccupancyArray();
-                    });
+                if(currentIndex < (sT.size()-1)){
+                    Animation nextAnimation = sT.get(++currentIndex);
+                    if(nextAnimation instanceof PathTransition){
+                        Car c = (Car) ((PathTransition)nextAnimation).getNode();
+                        a.setOnFinished(e-> Platform.runLater(()-> {
 
+                            if (!ACS.root.getChildren().contains(c)) {
+                                c.getCarIcon().setNodeOrientation(nextAnimation.getRate() < 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+                                System.out.println(c.getVehicleModel()+" added to scenegraph");
+                                ACS.root.getChildren().add(c);
+                            }else
+                                c.getCarIcon().setNodeOrientation(nextAnimation.getRate() < 0 ? NodeOrientation.LEFT_TO_RIGHT : NodeOrientation.RIGHT_TO_LEFT);
+
+                            System.out.println("Location of "+c+" is X: "+c.getTranslateX()+", Y: "+c.getTranslateY());
+                            System.out.println("Node Orientation in PT "+((PathTransition)nextAnimation)+" of "+((PathTransition)nextAnimation).getNode()+" Car: "+((PathTransition)nextAnimation).getNode().getNodeOrientation()+" Transition Rate: "+((PathTransition)nextAnimation).getRate());
+                            System.out.println("Node Orientation in PT "+((PathTransition)nextAnimation)+" of "+((Car)((PathTransition)nextAnimation).getNode()).getCarIcon()+"Car Icon: "+((Car)((PathTransition)nextAnimation).getNode()).getCarIcon().getNodeOrientation()+" Transition Rate: "+((PathTransition)nextAnimation).getRate());
+                            
+                            System.out.println("Modulus: "+sT.indexOf(nextAnimation) % 8);
+                            if(sT.indexOf(nextAnimation) % 8 == 1){
+                                new Timer().schedule(new TimerTask(){
+                                    @Override
+                                    public void run(){
+                                        c.startTracking();
+                                    }
+                                }, 2000);
+                            }
+                            else
+                                new Timer().schedule(new TimerTask(){
+                                    @Override
+                                    public void run(){
+                                        c.endTracking();
+//                                        c.startTracking();
+                                    }
+                                }, 0);
+                            
+                            nextAnimation.play();
+                            System.out.println("Playing Next Animation");
+                            
+                        }));
+//                        int index = currentIndex / 8;
+//                        System.out.println("Pause Transition Detected @ index "+index);
+//                        Platform.runLater(()->{
+//                            if (!ACS.root.getChildren().contains(checkInVehicles.get(index))) {
+//                                    ACS.root.getChildren().add(checkInVehicles.get(index));
+//                                    System.out.println(checkInVehicles.get(index).getVehicleModel()+" added to scenegraph");
+//                                }
+//                        });
+                    }else
+                        a.setOnFinished(e -> nextAnimation.play());
+                }else
+                    a.setOnFinished(e -> printOccupancyArray());
         }
-        
-        sT.get(0).play();
-        sT.get(0).stop();
-        sT.get(0).setDelay(Duration.seconds(5));
-        sT.get(0).play();
-        System.out.println("Animation Started");
-        
+
+        Platform.runLater(() -> {
+            sT.get(0).play();
+            System.out.println("Animation Started");
+        });
     }
     
     public Timeline getBarrierAnimation(Node barrier, Duration d, int angle){
@@ -317,8 +349,9 @@ public class AnimationSequence {
         ImageView entExtBarrier = new ImageView(new Image(getClass().getResourceAsStream("assets/Access Control Barrier.png")));
         ImageView extExtBarrier = new ImageView(new Image(getClass().getResourceAsStream("assets/Access Control Barrier.png")));
         ImageView camera = new ImageView(new Image(getClass().getResourceAsStream("assets/Camera Sensor.png")));
+        ImageView RFIDEntranceAuthenticator = new ImageView(new Image(getClass().getResourceAsStream("assets/RFID Sensor 2.png")));
         
-        VACS_Components.addAll(Arrays.asList(firstBarrier, secondBarrier, entExtBarrier, extExtBarrier, camera));
+        VACS_Components.addAll(Arrays.asList(firstBarrier, secondBarrier, entExtBarrier, extExtBarrier, camera, RFIDEntranceAuthenticator));
         
         return VACS_Components;
     }
@@ -347,8 +380,15 @@ public class AnimationSequence {
                 case 4:
                     n.setLayoutX(681);
                     n.setLayoutY(284);
+                    ((ImageView)n).setFitHeight(25);
+                    ((ImageView)n).setPreserveRatio(true);
                     break;
-                    
+                case 5:
+                    n.setLayoutX(680);
+                    n.setLayoutY(284);
+                    ((ImageView)n).setFitHeight(15);
+                    ((ImageView)n).setPreserveRatio(true);
+                    break;
             }
         }
     }
@@ -364,10 +404,10 @@ public class AnimationSequence {
     
     private void printOccupancyArray(){
         for (int i = 0; i < occupany.length; i++) {
-            System.out.println("");
             for (int j = 0; j < occupany[i].length; j++) {
                 System.out.print(occupany[i][j]+" ");
             }
+            System.out.println("");
         }
     }
     
@@ -422,9 +462,11 @@ public class AnimationSequence {
                         case 'C':
                             rowIndex = 2;
                             c.setRotate(90);
+                            c.getPlateNumber().setRotate(-90);
                             break;
                         case 'D':
                             c.setRotate(90);
+                            c.getPlateNumber().setRotate(-90);
                             rowIndex = 3;
                             break;
                         case 'E':
@@ -503,7 +545,7 @@ public class AnimationSequence {
                 //if the generated section is A or E, generate a random space between the available space 1 - 5 in section A or E, 
                 //else generate a number between 1 - 11 for available spance in section B, C or D
                 int numCode =  1 + (int)(Math.random() * (builder.charAt(0) == 'A'|| builder.charAt(0) == 'E'? 5 : 11));
-                System.out.println("Generated space number: "+numCode+" for generated character "+ builder.charAt(0));
+//                System.out.println("Generated space number: "+numCode+" for generated character "+ builder.charAt(0));
                 builder.append(numCode);
             }
         }

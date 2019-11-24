@@ -7,9 +7,10 @@ package acs;
 
 
 import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
 import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -21,16 +22,19 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 /**
  *
  * @author PETER-PC
  */
 public class ACS extends Application {
     SplitPane cPanel;
+    public static Pane root = new Pane();
     @Override
     public void start(Stage primaryStage) {
 
-            Pane root = new Pane();
+//            root = new Pane();
+            root.setId("container");
             cPanel = new SplitPane();
             try {
                 FXMLLoader myLoader = new FXMLLoader(getClass().getResource("ControlPanel.fxml"));
@@ -53,6 +57,7 @@ public class ACS extends Application {
 
 
             primaryStage.setTitle("JavaFX PathTransition Test with SVG");
+//            Scene scene = new Scene(root, 1200, 750);
             Scene scene = new Scene(root, 740, 550);
             primaryStage.setScene(scene);
             primaryStage.show();
@@ -67,8 +72,20 @@ public class ACS extends Application {
             scene.setOnMouseClicked(e ->{
                 System.out.println("LayoutX: "+e.getSceneX()+"; LayoutY: "+e.getSceneY());
             });
+            
+            ((Button)cPanel.lookup("#btnResume")).setOnAction(e->{
+                curAnimation.play();
+            });
+            
+            ((Button)cPanel.lookup("#btnPause")).setOnAction(e->{
+                for(Animation a: animation.getAnimationSequence()){
+                    if(a.getStatus() == Animation.Status.RUNNING){
+                        curAnimation = a;
+                        a.stop();
+                    }
+                }
+            });
 
-        
             ((Button)cPanel.lookup("#btnStart")).setOnAction(e->{
                 if(root.getChildren().containsAll(AnimationSequence.getParkedVehicles()))
                     root.getChildren().removeAll(AnimationSequence.getParkedVehicles());
@@ -93,9 +110,9 @@ public class ACS extends Application {
                         animation.setNumOfCheckIn(getNOC_AccessRunsValue());
 //                        animation.setNumOfCheckOut(getNOC_AccessRunsValue());
 //                        interrupt();
-                        Platform.runLater(()->{
-                            root.getChildren().addAll(AnimationSequence.getCheckInVehicles());        
-                        });
+//                        Platform.runLater(()->{
+//                            root.getChildren().addAll(AnimationSequence.getCheckInVehicles());        
+//                        });
                     }
                 }.start();
                 
@@ -127,11 +144,21 @@ public class ACS extends Application {
 //                int output = 0;
 //                for(Animation a: animation.getAnimationSequence())
 //                    output+=5000;
-//                        
+//                        8
 //                timer.schedule(task, 3000);
 //                timer.purge();
+                for(Car c: AnimationSequence.getCheckInVehicles()){
+                    if(root.getChildren().contains(c))
+                        root.getChildren().remove(c);
+                }
+
                 if (getNOC_AccessRunsValue() != 0) {
-                     animation.playAnimationSequence();
+                    new Thread(){
+                        @Override
+                        public void run(){
+                            animation.playAnimationSequence();
+                        }
+                    }.start();
                 }   
              });
 
@@ -151,5 +178,7 @@ public class ACS extends Application {
     public static void main(String[] args) {
         launch(args);
     }
+    
+    Animation curAnimation;
     
 }
