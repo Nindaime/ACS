@@ -26,7 +26,7 @@ public class Car extends Pane{
     private Label rfidNumber;
     private vehicleAccess accessLevel;
     public enum vehicleAccess {Residence, Visitor};
-    private Label plateNumber;
+//    private Label plateNumber;
     private String allocateSpace;
     public enum occupanyStatus {UNPARKED, PARKED};
     private occupanyStatus parkedStatus;
@@ -67,11 +67,11 @@ public class Car extends Pane{
         this.secondaryColor = secondaryColor;
     }
 
-    public Label getrfidNumber() {
+    public Label getRFIDNumber() {
         return rfidNumber;
     }
 
-    public void setrfidNumber(String rfidNumber) {
+    public void setRFIDNumber(String rfidNumber) {
         this.rfidNumber.setText(rfidNumber);
     }
 
@@ -82,14 +82,14 @@ public class Car extends Pane{
     public void setAccessLevel(vehicleAccess accessLevel) {
         this.accessLevel = accessLevel;
     }
-
-    public Label getPlateNumber() {
-        return plateNumber;
-    }
-
-    public void setPlateNumber(String plateNumber) {
-        this.plateNumber.setText(plateNumber);
-    }
+//
+//    public Label getPlateNumber() {
+//        return plateNumber;
+//    }
+//
+//    public void setPlateNumber(String plateNumber) {
+//        this.plateNumber.setText(plateNumber);
+//    }
 
     public ImageView getCarIcon() {
         return carIcon;
@@ -109,6 +109,10 @@ public class Car extends Pane{
     
     private Rectangle cursor;
     
+    public Car(){
+        this("Vehicle Sedan Green");
+    }
+    
     public Car(String imgFileName){
         vehicleModel = imgFileName;
         carIcon = new ImageView(new Image(getClass().getResourceAsStream("assets/"+imgFileName+".png")));
@@ -121,14 +125,14 @@ public class Car extends Pane{
         translateXProperty().addListener(new ChangeListener(){
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                System.out.print(this+" is @ X: "+newValue);
+//                System.out.print("\n"+getVehicleModel()+" parked at "+getAllocateSpace()+" is @ X: "+newValue);
             }
         });
         
         translateYProperty().addListener(new ChangeListener() {
             @Override
             public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-                System.out.println(" & Y: "+newValue);
+//                System.out.println(" & Y: "+newValue);
 //                System.out.println("Node Orientation of Car is "+getNodeOrientation()+" & Node Orientation of Car Icon is "+carIcon.getNodeOrientation());
             }
         });
@@ -138,53 +142,56 @@ public class Car extends Pane{
                 primaryColor = vehicleColor.LIGHTLAVENDAR;
                 secondaryColor = vehicleColor.BLACK;
                 rfidNumber = new Label(generateCode(4));
-                plateNumber = new Label(generateCode(6));
+//                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Limosin White":
                 primaryColor = vehicleColor.LIGHTGREY;
                 secondaryColor = vehicleColor.BLACK;
                 rfidNumber = new Label(generateCode(4));
-                plateNumber = new Label(generateCode(6));
+//                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Sedan Green":
                 primaryColor = vehicleColor.GREEN;
                 secondaryColor = vehicleColor.BLACK;
                 rfidNumber = new Label(generateCode(4));
-                plateNumber = new Label(generateCode(6));
+//                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Truck RedWhite":
                 primaryColor = vehicleColor.RED;
                 secondaryColor = vehicleColor.WHITE;
                 rfidNumber = new Label(generateCode(4));
-                plateNumber = new Label(generateCode(6));
+//                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Van Blue":
                 primaryColor = vehicleColor.SKYBLUE;
                 secondaryColor = vehicleColor.BLACK;
                 rfidNumber = new Label(generateCode(4));
-                plateNumber = new Label(generateCode(6));
+//                plateNumber = new Label(generateCode(6));
                 break;
             case "Vehicle Van LightBlue":
                 primaryColor = vehicleColor.LAVENDAR;
                 secondaryColor = vehicleColor.BLACK;
-                rfidNumber = new Label(generateCode(5));
-                plateNumber = new Label(generateCode(6));
+                rfidNumber = new Label(generateCode(4));
+//                plateNumber = new Label(generateCode(6));
                 break;
         }
         
         rfidTag.setFitWidth(10);
         rfidTag.setPreserveRatio(true);
-        plateNumber.setStyle("-fx-background-color: rgba(50,50,50,0.6); -fx-border-color: darkgrey; -fx-text-fill: white; -fx-margin: 0; -fx-padding: 0;");
-        getChildren().addAll(carIcon,rfidTag,plateNumber);
+        rfidNumber.setStyle("-fx-background-color: rgba(50,50,50,0.6); -fx-border-color: darkgrey; -fx-text-fill: white; -fx-margin: 0; -fx-padding: 0;");
+        getChildren().addAll(carIcon,rfidTag,rfidNumber);
         rfidTag.setLayoutX(carIcon.getBoundsInLocal().getWidth() / 2f);
         rfidTag.setLayoutY(10);
 //        
-        plateNumber.setLayoutY(4);
-        plateNumber.setTranslateX(carIcon.getBoundsInLocal().getWidth() - 15);
-        plateNumber.setRotate(90);
-        setStyle("-fx-background-color: rgba(20,20,20,0.8);");
+        rfidNumber.setLayoutY(4);
+        rfidNumber.setTranslateX(carIcon.getBoundsInLocal().getWidth() - 15);
+        rfidNumber.setRotate(90);
         
         cursor = new Rectangle(carIcon.getBoundsInLocal().getHeight() + 3, carIcon.getBoundsInLocal().getWidth() + 3);
+    }
+    
+    public void adjustRFIDLocation(){
+        rfidNumber.setTranslateX(-15);
     }
     
     class Tracker implements ChangeListener{

@@ -7,28 +7,30 @@ package acs;
 
 
 import java.io.IOException;
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 /**
  *
  * @author PETER-PC
  */
 public class ACS extends Application {
-    SplitPane cPanel;
+    public static SplitPane cPanel;
     public static Pane root = new Pane();
     @Override
     public void start(Stage primaryStage) {
@@ -54,42 +56,32 @@ public class ACS extends Application {
             
             root.getChildren().add(0, map);
             
-
-
             primaryStage.setTitle("JavaFX PathTransition Test with SVG");
-//            Scene scene = new Scene(root, 1200, 750);
+
             Scene scene = new Scene(root, 740, 550);
             primaryStage.setScene(scene);
             primaryStage.show();
             
             AnimationSequence animation = new AnimationSequence();
-//            animation.setAnimationSequence("extP_reverseFromB1","extP_toExtFromB1Reverse");
-            //D7 blacklist
             
             root.getChildren().addAll(animation.getControlSystem());
             animation.setControlSystemCoordinates();
             
-            scene.setOnMouseClicked(e ->{
-                System.out.println("LayoutX: "+e.getSceneX()+"; LayoutY: "+e.getSceneY());
-            });
-            
             ((Button)cPanel.lookup("#btnResume")).setOnAction(e->{
-                curAnimation.play();
+                animation.playAnimation();
             });
             
             ((Button)cPanel.lookup("#btnPause")).setOnAction(e->{
-                for(Animation a: animation.getAnimationSequence()){
-                    if(a.getStatus() == Animation.Status.RUNNING){
-                        curAnimation = a;
-                        a.stop();
-                    }
-                }
+                animation.pauseAnimation();
             });
-
+//
             ((Button)cPanel.lookup("#btnStart")).setOnAction(e->{
-                if(root.getChildren().containsAll(AnimationSequence.getParkedVehicles()))
-                    root.getChildren().removeAll(AnimationSequence.getParkedVehicles());
-                new Thread(){
+
+                root.getChildren().removeIf((Node n)-> (n instanceof Car));
+                if(!animation.getAnimationSequence().isEmpty())
+                    animation.getAnimationSequence().clear();
+                
+                Thread t1 = new Thread(){
                     @Override
                         public void run(){
                             animation.generateParkedCars(getNOC_ParkedCarsValue());
@@ -98,69 +90,64 @@ public class ACS extends Application {
                                 animation.layoutParkedCars(root);
                             });
                     }
-                }.start();
-                
+                };
 
-                if(root.getChildren().containsAll(AnimationSequence.getCheckInVehicles()))
-                    root.getChildren().removeAll(AnimationSequence.getCheckInVehicles());
                 
-                new Thread(){
+                Thread t2 = new Thread(){
                     @Override
                     public void run(){
-                        animation.setNumOfCheckIn(getNOC_AccessRunsValue());
-//                        animation.setNumOfCheckOut(getNOC_AccessRunsValue());
-//                        interrupt();
-//                        Platform.runLater(()->{
-//                            root.getChildren().addAll(AnimationSequence.getCheckInVehicles());        
-//                        });
+                        if(getNOC_CheckIn() != 0)
+                            animation.setNumOfCheckIn(getNOC_CheckIn());
+                        if(getNOC_CheckOut() != 0)
+                            animation.setNumOfCheckOut(getNOC_CheckOut(), false);
+
                     }
-                }.start();
+                };
                 
-//                if(getNOC_AccessRunsValue() != 0)
-//                    animation.playAnimationSequence(); 
+                Thread t4 = new Thread(){
+                    @Override
+                    public void run(){
+                        ToggleButton tgBtnVisitorLog = (ToggleButton) cPanel.lookup("#tgBtnVisitorLog");
+                        tgBtnVisitorLog.setSelected(true);
+                        TableView table = (TableView) cPanel.lookup("#tableView");
+                        
+                        Platform.runLater(()->{
+                            ((TableColumn) table.getColumns().get(2)).setText("TIME-IN");
+                            ((TableColumn) table.getColumns().get(3)).setText("TIME-OUT");
+                        });
+                        
+                        if(!table.getItems().isEmpty())
+                            table.getItems().clear();
+                        table.getItems().addAll(animation.getVisitorLogTableData());
+                    }
+                };
+                
+                Thread t3 = new Thread(){
+                    @Override
+                    public void run(){
+                        animation.generateVisitorLog();
+                        if(getNOC_CheckIn() != 0)
+                            animation.reconstructCheckInAnimation();
+                        else
+                            AnimationSequence.getCheckInVehicles().clear();
+                        animation.getAnimSequenceData();
+                    }
+                };
+                
+                ExecutorService executor = Executors.newFixedThreadPool(1);
+                executor.execute(t1);
+                executor.execute(t2);
+                executor.execute(t3);
+                executor.execute(t4);
+                executor.shutdown();
+                
+
             });
             
-             ((Button)cPanel.lookup("#btnPlay")).setOnAction(e ->{
-//                if(root.getChildren().containsAll(AnimationSequence.getParkedVehicles())){
-//                    root.getChildren().removeAll(AnimationSequence.getParkedVehicles());
-//                }
-//                    
-//                    animation.generateParkedCars(getNOC_ParkedCarsValue());
-//                    animation.layoutParkedCars(root);
-//                    
-//                if(root.getChildren().containsAll(AnimationSequence.getCheckInVehicles())) {
-//                    root.getChildren().removeAll(AnimationSequence.getCheckInVehicles());
-//                }
-//                
-//                animation.setNumOfCheckOut(getNOC_AccessRunsValue());
-//                Timer timer = new Timer();
-//                TimerTask task = new TimerTask(){
-//                    @Override
-//                    public void run(){
-//                        
-//                    }
-//                    
-//                };
-//                int output = 0;
-//                for(Animation a: animation.getAnimationSequence())
-//                    output+=5000;
-//                        8
-//                timer.schedule(task, 3000);
-//                timer.purge();
-                for(Car c: AnimationSequence.getCheckInVehicles()){
-                    if(root.getChildren().contains(c))
-                        root.getChildren().remove(c);
-                }
-
-                if (getNOC_AccessRunsValue() != 0) {
-                    new Thread(){
-                        @Override
-                        public void run(){
-                            animation.playAnimationSequence();
-                        }
-                    }.start();
-                }   
-             });
+            ((Button)cPanel.lookup("#btnPlay")).setOnAction(e -> animation.playAnimationSequence());
+            
+            ((ToggleButton) cPanel.lookup("#tgBtnAnimSequence")).setOnAction(e-> animation.setToggle(e));
+            ((ToggleButton) cPanel.lookup("#tgBtnVisitorLog")).setOnAction(e-> animation.setToggle(e));
 
     }
     
@@ -168,8 +155,12 @@ public class ACS extends Application {
         return ((int)((Slider)cPanel.lookup("#sldParkedCars")).getValue());
     }
     
-    public final int getNOC_AccessRunsValue(){
-        return ((int)((Slider)cPanel.lookup("#sldACS")).getValue());
+    public final int getNOC_CheckIn(){
+        return ((int)((ChoiceBox)cPanel.lookup("#cBoxCheckIn")).getValue());
+    }
+    
+    public final int getNOC_CheckOut(){
+        return ((int)((ChoiceBox)cPanel.lookup("#cBoxCheckOut")).getValue());
     }
         
     /**
@@ -178,7 +169,5 @@ public class ACS extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-    
-    Animation curAnimation;
     
 }
