@@ -90,10 +90,10 @@ public class AnimationSequence {
 
             File entrancePath = new File("src/acs/assets/FloorPlan(Entrance Paths).svg");
             File exitPath = new File("src/acs/assets/FloorPlan(Exit Paths).svg");
-            File drivePath = new File("src/acs/assets/FloorPlanDrivePath.svg");
+            
             svgEntranceDrivePath = f.createSVGDocument(entrancePath.getAbsoluteFile().toURI().toString());
             svgExitDrivePath = f.createSVGDocument(exitPath.getAbsoluteFile().toURI().toString());
-            svgDrivePath = f.createSVGDocument(drivePath.getAbsoluteFile().toURI().toString());
+            
         }catch(IOException ex){}
         
     }
@@ -104,9 +104,7 @@ public class AnimationSequence {
         parser.setPathHandler(handler);
         String pathData, matrixTransform;
 
-//        SAXParser p = new SAXParser();
         Element selectedPath = (pathID.matches("entP_to[\\S]{2,}")? svgEntranceDrivePath.getElementById(pathID) : svgExitDrivePath.getElementById(pathID));
-//        Element selectedPath = svgDrivePath.getElementById(pathID);
         pathData = selectedPath.getAttributeNode("d").getValue();
         matrixTransform = selectedPath.getAttributeNode("transform").getValue();
         
@@ -250,7 +248,7 @@ public class AnimationSequence {
             }else if(pathID[i].matches("entP_to[\\S]{2,3}") && (counter == 1)){
                 ParallelTransition plT = new ParallelTransition(getBarrierAnimation(VACS_Components.get(1), Duration.seconds(barrierDuration), 0), tempAnimationList.remove(4), setNotificationAnimation("Vehicle Assigned Lot "+pathID[i].substring(7)));
                 tempAnimationList.add(plT);
-
+                
 //                printOccupancyArray();
             }else if(pathID[i].matches("extP_toExtFrom[\\S]{2,}")){
                 tempAnimationList.add(getBarrierAnimation(VACS_Components.get(3), Duration.seconds(barrierDuration), -45));
@@ -331,45 +329,34 @@ public class AnimationSequence {
                             ACS.root.getChildren().add(1, c);
                         }
                         MoveTo sPoint = (MoveTo) ((Path) currentPathTransition.getPath()).getElements().get(0);
-                        System.out.println("MoveTo X: "+sPoint.getX()+" Y: "+sPoint.getY());
+//                        System.out.println("MoveTo X: "+sPoint.getX()+" Y: "+sPoint.getY());
                         if (sPoint.getX() == -6.330897808074951 && sPoint.getY() == 419.0694580078125 || 
                                 sPoint.getX() == 37.5086555480957 && sPoint.getY() == 355.8201904296875 ) {
-                                nextAnimation.setOnFinished(i -> {
-                                    ACS.root.getChildren().remove(c);
-                                    followUpAnimation.play();
-                                        });
+                                
+                            nextAnimation.setOnFinished(i -> {
+                                ACS.root.getChildren().remove(c);
+                                updateTableData(c, false, "Done");
+                                followUpAnimation.play();
+                            });
                         }else if(sPoint.getX() == -0.0010140599915757775 && sPoint.getY() == 418.9505615234375 ){
                             c.adjustRFIDLocation();
-                            updateVisitorLog(c);
+                            updateTableData(c, true, "Parked");
+                            updateTableData(c, false, "Done");
                             updateOccupancy(c.getAllocateSpace(), Car.occupanyStatus.PARKED);
                             parkedVehicles.add(c);
                         }else
                             c.adjustRFIDLocation();
                             
-
-//                            if(sT.indexOf(nextAnimation) % 8 == 1){
-//                                new Timer().schedule(new TimerTask(){
-//                                    @Override
-//                                    public void run(){
-//                                        c.startTracking();
-//                                    }
-//                                }, 2000);
-//                            }
-//                            else
-//                                new Timer().schedule(new TimerTask(){
-//                                    @Override
-//                                    public void run(){
-//                                        c.endTracking();
-////                                        c.startTracking();
-//                                    }
-//                                }, 0);
+//                        if(c.getTracker() != null)
+//                            c.endTracking();
 
                         nextAnimation.play();
-                        System.out.println("Playing Next Animation after ParallelTransition"+nextAnimation);
 
                     });
                 }else if(nextAnimation instanceof PathTransition){
                         Car c = (Car)((PathTransition)nextAnimation).getNode();
+                        Path p = (Path) ((PathTransition) nextAnimation).getPath();
+                        MoveTo sPoint = (MoveTo) p.getElements().get(0);
                         boolean shouldReverse = ((currentIndex + 1) < sT.size()-1 && sT.get(currentIndex + 1) instanceof PathTransition);
                         a.setOnFinished(e -> {
                             if (!ACS.root.getChildren().contains(c)) {
@@ -383,22 +370,29 @@ public class AnimationSequence {
                                 c.getCarIcon().setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
                                 c.adjustRFIDLocation();
                             }
+                            
+                            updateTableData(c, false, "Playing");
+                            
+//                            if (sPoint.getX() == -9.00101375579834 && sPoint.getY() == 418.95062255859375)
+//                                new Timer().schedule(new TimerTask(){
+//                                    @Override
+//                                    public void run(){
+//                                            c.setTracker();
+//                                    }
+//                                }, 2000);
+//                            }
+//                            else
+//                                c.endTracking();
                                 
                             nextAnimation.play();
-//                            System.out.println("Playing Next Animation after PathTransition"+nextAnimation);
                         });
                         
-                }else{
-                    a.setOnFinished(e -> {
-                        nextAnimation.play();
-//                        System.out.println("Playing Next Animation after PauseTransition or Timeline"+nextAnimation);
-                            });
-                }
+                }else
+                    a.setOnFinished(e -> nextAnimation.play());
                 
-            }else{
+            }else
                 a.setOnFinished(e -> printOccupancyArray());
-                //output linegraph
-            }
+            
         }
 
 //        Platform.runLater(() -> {
@@ -501,13 +495,13 @@ public class AnimationSequence {
                 allottedSpace = generatePS_Num();
 //                System.out.println("Generated Space: "+allottedSpace);
             }
-//            System.out.println("Valid Generated Space: "+allottedSpace);
             
             int vehicleID = (int)(Math.random() * 6);
             Car car = new Car(vehicleFileNames[vehicleID]);
             car.setAllocateSpace(allottedSpace);
             updateOccupancy(allottedSpace, Car.occupanyStatus.PARKED);
-//            System.out.println("Occupancy Updated");
+            System.out.println("Valid Generated Space: "+allottedSpace);
+            System.out.println("Occupancy Updated");
             parkedVehicles.add(car);
         }
         
@@ -627,7 +621,7 @@ public class AnimationSequence {
                 //confirms the vehicle from visitor logs and permitted time for parking on visitor log
                 if(c.getRFIDNumber().getText().matches(RFID) && isWithinValidTimeAccess(a, c) || c.getAccessLevel() == Car.vehicleAccess.Residence){
                     System.out.println("Vehicle "+c.getRFIDNumber().getText()+" is granted Access"
-                            +(c.getAccessLevel() == Car.vehicleAccess.Residence ? " because vehile is resident" : ""));
+                            +(c.getAccessLevel() == Car.vehicleAccess.Residence ? " because vehicle is resident" : ""));
                     
                     isValid = true;
                     break;
@@ -635,21 +629,27 @@ public class AnimationSequence {
             }
             
             //get the index of the animation sequence for invalid vehicle access for animation reconstruction
+            boolean animationFound = false;
             if(!isValid){
                 ArrayList<Integer> animationIndices = new ArrayList<>();
                 for (Animation animation : sT){
-                    if (animation instanceof PathTransition) {
+                    if(animationFound)
+                        break;
+                    else if (animation instanceof PathTransition && ((PathTransition)animation).getNode().equals(c)) {
                         Path p = (Path) ((PathTransition) animation).getPath();
                         MoveTo sPoint = (MoveTo) p.getElements().get(0);
 
-                        if (sPoint.getX() == -9.00101375579834 && sPoint.getY() == 418.95062255859375) 
+                        if (sPoint.getX() == -9.00101375579834 && sPoint.getY() == 418.95062255859375){
                             animationIndices.add(sT.indexOf(animation));
+                            animationFound = true;
+                        } 
                     }
                 }
 
                 //remove animation sequence of invalid vehicle access via index
                 if(!sT.isEmpty()){
                     sT.removeIf((Animation t) -> (sT.indexOf(t) >= (animationIndices.get(0) - 1)) && (sT.indexOf(t) <= (animationIndices.get(0) + 5)));
+                    System.out.println("Index of animation is "+(animationIndices.get(0) - 1));
                 }
 
                 setAnimationSequence(c, "entP_toFirstBarrier", "entP_toEntExt1", "entP_toEntExt2");
@@ -661,9 +661,6 @@ public class AnimationSequence {
         if(checkoutNum != 0){
 
             ArrayList<Integer> indices = new ArrayList<>();
-           
-            for(Animation a: sT)
-                System.out.println("Reconstruction Before Checkout Reduction-> Animation: "+a);
         
             for(Animation a: sT){
                 int index = sT.indexOf(a);
@@ -680,25 +677,36 @@ public class AnimationSequence {
                 else
                     sT.removeIf((Animation a) -> (sT.indexOf(a) >= (index - 1) && sT.indexOf(a) < (index + 5)));
             }
-//            
-            for(Animation a: sT)
-                System.out.println("Reconstruction After Checkout Reduction-> Animation: "+a);
-            
+
             setNumOfCheckOut(checkoutNum, true);
-//            for(Animation a: sT)
-//                System.out.println("Reconstruction After-> Animation: "+a);
         }
     }
     
-    public void updateVisitorLog(Car c){
+    public void updateTableData(Car c, boolean updateVisitorLog, String updateMessage){
         TableView<AnimPlan_VisitorLog> table = (TableView) ACS.root.lookup("#tableView");
-        for(AnimPlan_VisitorLog a: table.getItems()){
-            if(a.getRFID().matches(c.getRFIDNumber().getText())){
-                a.setStatus("Packed");
-                System.out.println("Visitor Log updated");
-                table.refresh();
-                
-            }
+        ToggleButton tgBtnVisitorLog = (ToggleButton) cPanel.lookup("#tgBtnVisitorLog");
+        if(updateVisitorLog){
+            for(AnimPlan_VisitorLog a: visitorLogTableData)
+                if(a.getRFID().matches(c.getRFIDNumber().getText())){
+                    a.setStatus(updateMessage);
+                    System.out.println("Visitor Log Data updated");
+                    if(tgBtnVisitorLog.isSelected()){
+                        table.getItems().get(visitorLogTableData.indexOf(a)).setStatus(updateMessage);
+                        System.out.println("Visitor Log Data updated on Table");
+                        table.refresh();
+                    }
+                }
+        }else{
+            for(AnimPlan_VisitorLog a: animSequenceTableData)
+                if(a.getRFID().matches(c.getRFIDNumber().getText())){
+                    a.setStatus(updateMessage);
+                    System.out.println("Animation Sequence Data updated");
+                    if(!tgBtnVisitorLog.isSelected()){
+                        table.getItems().get(animSequenceTableData.indexOf(a)).setStatus(updateMessage);
+                        System.out.println("Animation Sequence Data updated on Table");
+                        table.refresh();
+                    }
+                }
         }
     }
     
@@ -773,6 +781,7 @@ public class AnimationSequence {
         {new Point2D(-13,-235), new Point2D(-13,-190), new Point2D(-13,-150), new Point2D(-13,-105), new Point2D(-13,-60)}};
     
     private Point2D getExitPathTranslations(String allocatedSpace){
+        System.out.println("Allocate Space from Exit Path Translation: "+allocatedSpace);
         char rowCharIndex = allocatedSpace.charAt(0);
         int columnIndex = Integer.parseInt(allocatedSpace.substring(1));
         int rowIndex = 0;
@@ -918,6 +927,18 @@ public class AnimationSequence {
         return car;
     }
     
+    public boolean isCheckInVehicleAllocateSpace(String allocateSpace){
+        boolean output = false;
+        for(Car c: checkInVehicles){
+            if(c.getAllocateSpace().matches(allocateSpace)){
+                output = true;
+                break;
+            }
+        }
+
+        return output;
+    }
+    
     public String getOccupiedParkingLot(){
         String output = ""; boolean found = false;
         for (int i = 0; i < occupany.length; i++) {
@@ -927,9 +948,11 @@ public class AnimationSequence {
             }
             for (int j = 0; j < occupany[i].length; j++) {
 //                System.out.println("Accessing Occupancy Array @ row: "+i+", column: "+j);
+                if(found)
+                    break;
+                
                 if(occupany[i][j] == 1){
                     System.out.println("Vehicle found @ Parking Space ["+i+"]["+j+"]");
-                    found = true;
                     switch(i){
                         case 0:
                             output += "A";
@@ -949,7 +972,12 @@ public class AnimationSequence {
                     }
                     int parkinglotNumber = ++j;
                     output += parkinglotNumber;
-                    break;
+                    
+                    if(!isCheckInVehicleAllocateSpace(output)){
+                        System.out.println("Found ");
+                        found = true;
+                        break;
+                    }
                 }
             }
         }
@@ -1003,7 +1031,7 @@ public class AnimationSequence {
         //generate random values for the table
         for (int i = 0; i < 5; i++) {
             int rand = (int)(Math.random() * 5);
-            visitorLogTableData.add(new AnimPlan_VisitorLog((i+1), new Car().getRFIDNumber().getText(), getTime(rand-2, 0), getTime(rand+5, 0), "Unpacked"));
+            visitorLogTableData.add(new AnimPlan_VisitorLog((i+1), new Car().getRFIDNumber().getText(), getTime(rand-2, 0), getTime(rand+5, 0), "Unparked"));
         }
         
         int[] valOccurrence = {0,0,0,0,0};

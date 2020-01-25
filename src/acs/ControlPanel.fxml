@@ -69,8 +69,8 @@
                     <columns>
                       <TableColumn prefWidth="25.0" style="-fx-alignment: center;" text="#" />
                       <TableColumn prefWidth="50.0" style="-fx-alignment: center;" text="RFID" />
-                        <TableColumn prefWidth="96.0" style="-fx-alignment: center;" text="ACTIVITY" />
-                        <TableColumn prefWidth="96.0" style="-fx-alignment: center;" text="TIME" />
+                        <TableColumn prefWidth="90.0" style="-fx-alignment: center;" text="ACTIVITY" />
+                        <TableColumn prefWidth="90.0" style="-fx-alignment: center;" text="TIME" />
                         <TableColumn prefWidth="60.0" style="-fx-alignment: center;" text="STATUS" />
                     </columns>
                      <cursor>

@@ -7,6 +7,7 @@ package acs;
  */
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -52,10 +53,10 @@ public class ControlPanelController implements Initializable {
         cBoxTimer.setValue(3);
 
         cBoxCheckIn.setItems(FXCollections.observableArrayList(0,1,2,3,4,5));
-        cBoxCheckIn.setValue(1);
+        cBoxCheckIn.setValue(4);
 
         cBoxCheckOut.setItems(FXCollections.observableArrayList(0,1,2,3,4,5));
-        cBoxCheckOut.setValue(0);
+        cBoxCheckOut.setValue(4);
         
         ToggleGroup tGroup = new ToggleGroup();
         tgBtnVisitorLog.setToggleGroup(tGroup);
@@ -78,15 +79,12 @@ public class ControlPanelController implements Initializable {
                 }else{
                     for(Car c: AnimationSequence.getCheckInVehicles()){
                         if(c.getRFIDNumber().getText().matches(item.getRFID()) && item.getActivity_TimeIn().matches("[\\d]{2}:[\\d]{2}:[\\d]{2}")){
-//                            System.out.println("Item: RFID->"+item.getRFID()+", TIME-IN->"+item.getActivity_TimeIn());
                             for(int i=0; i < getChildren().size(); i++){
-//                                ((Labeled)getChildren().get(i)).setTextFill(Color.WHITE);
                                 ((Labeled)getChildren().get(i)).setStyle("-fx-background-color: grey; -fx-text-fill: white; -fx-alignment: center");
                             }
                         }
 //                        else{
 //                            for(int i=0; i < getChildren().size(); i++){
-////                                ((Labeled)getChildren().get(i)).setTextFill(Color.WHITE);
 //                                ((Labeled)getChildren().get(i)).setStyle("-fx-background-color: white; -fx-text-fill: black; -fx-alignment: center");
 //                            }
 //                        }

@@ -67,6 +67,10 @@ public class ACS extends Application {
             root.getChildren().addAll(animation.getControlSystem());
             animation.setControlSystemCoordinates();
             
+            scene.setOnMouseClicked(e ->{
+                System.out.println("LayoutX: "+e.getSceneX()+"; LayoutY: "+e.getSceneY());
+            });
+            
             ((Button)cPanel.lookup("#btnResume")).setOnAction(e->{
                 animation.playAnimation();
             });
@@ -98,8 +102,11 @@ public class ACS extends Application {
                     public void run(){
                         if(getNOC_CheckIn() != 0)
                             animation.setNumOfCheckIn(getNOC_CheckIn());
-                        if(getNOC_CheckOut() != 0)
-                            animation.setNumOfCheckOut(getNOC_CheckOut(), false);
+                        if(getNOC_CheckOut() != 0 && !AnimationSequence.getParkedVehicles().isEmpty())
+                            if(getNOC_CheckIn() != 0)
+                                animation.setNumOfCheckOut(getNOC_CheckOut(), false);
+                            else
+                                animation.setNumOfCheckOut(getNOC_CheckOut(), true);
 
                     }
                 };
@@ -128,7 +135,7 @@ public class ACS extends Application {
                         animation.generateVisitorLog();
                         if(getNOC_CheckIn() != 0)
                             animation.reconstructCheckInAnimation();
-                        else
+                        else if(!AnimationSequence.getCheckInVehicles().isEmpty())
                             AnimationSequence.getCheckInVehicles().clear();
                         animation.getAnimSequenceData();
                     }
@@ -144,7 +151,10 @@ public class ACS extends Application {
 
             });
             
-            ((Button)cPanel.lookup("#btnPlay")).setOnAction(e -> animation.playAnimationSequence());
+            ((Button)cPanel.lookup("#btnPlay")).setOnAction(e -> {
+                if(getNOC_CheckIn() != 0 || getNOC_CheckOut() != 0 && !AnimationSequence.getParkedVehicles().isEmpty())
+                    animation.playAnimationSequence();
+                    });
             
             ((ToggleButton) cPanel.lookup("#tgBtnAnimSequence")).setOnAction(e-> animation.setToggle(e));
             ((ToggleButton) cPanel.lookup("#tgBtnVisitorLog")).setOnAction(e-> animation.setToggle(e));
