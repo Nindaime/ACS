@@ -1,0 +1,8 @@
+.root {
+    -fx-background-color:black;
+}
+ 
+.track {
+    -fx-stroke: transparent;
+    -fx-stroke-width: 5;
+}

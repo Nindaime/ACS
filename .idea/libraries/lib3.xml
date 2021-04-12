@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="lib3">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/out/production/ACS/acs/lib/xerces-2.9.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/out/production/ACS/acs/lib/batik-all-1_6.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

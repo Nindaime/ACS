@@ -82,14 +82,6 @@ public class Car extends Pane{
     public void setAccessLevel(vehicleAccess accessLevel) {
         this.accessLevel = accessLevel;
     }
-//
-//    public Label getPlateNumber() {
-//        return plateNumber;
-//    }
-//
-//    public void setPlateNumber(String plateNumber) {
-//        this.plateNumber.setText(plateNumber);
-//    }
 
     public ImageView getCarIcon() {
         return carIcon;
